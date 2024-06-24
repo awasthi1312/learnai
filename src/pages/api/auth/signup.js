@@ -1,6 +1,7 @@
 import User from "../../../models/user";
 import connectmongo from "../../../middleware/db";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const handler = async (req, res) => {
     if (req.method === "POST") {
@@ -25,8 +26,17 @@ const handler = async (req, res) => {
                 lastName
             });
 
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: user._id, email: user.email },
+                process.env.JWT_SECRET,
+                { noTimestamp: true }
+            );
+
             return res.status(201).json({
-                message: "User created successfully", user: {
+                message: "User created successfully",
+                token,
+                user: {
                     username: user.username,
                     email: user.email,
                     firstName: user.firstName,
