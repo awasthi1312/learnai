@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "agora-rtc-react": "^2.2.0",
+    "agora-rtc-sdk-ng": "^4.21.0",
+    "agora-rtm-sdk": "^2.1.9",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^8.4.3",

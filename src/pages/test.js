@@ -1,61 +1,51 @@
-// pages/index.js
-
-import Header from '../components/navbar';
+'use client'
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter()
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <Header />
-      {/* Main content */}
-      <main className="flex-grow p-4 space-y-4">
-        {/* Streak section */}
-        <section className="bg-white p-4 rounded-lg shadow">
-          <h2 className="font-bold mb-2">This Week's Streak</h2>
-          <div className="flex justify-between">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <span className="text-xs">{day}</span>
-                <span className="w-6 h-6 bg-red-200 rounded-full mt-1"></span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Connect with people section */}
-        <section className="bg-blue-600 text-white p-4 rounded-lg">
-          <h2 className="font-bold mb-2">300,000+ Active Learners</h2>
-          <p>Connect with Real People</p>
-          <button className="mt-2 bg-white text-blue-600 px-4 py-2 rounded">Practice Now</button>
-        </section>
-
-        {/* AI tutor section */}
-        <section className="bg-green-500 text-white p-4 rounded-lg flex justify-between items-center">
+    <div className="flex flex-col items-center">
+      <h1
+        className="mb-4 mt-20 text-4xl font-extrabold leading-none tracking-tight text-gray-900"
+      >
+        <span className="text-black">NextJS</span> x <span className="text-blue-500"
+        >Agora</span
+        >
+      </h1>
+      <form onSubmit={(e) => {
+        e.preventDefault()
+        const target = e.target;
+        router.push(`/channel/${target.channel.value}`)
+      }}>
+        <div className="md:flex md:items-center mt-6">
           <div>
-            <h2 className="font-bold">AI-POWERED ENGLISH TUTOR</h2>
-            <p>Personal Teacher</p>
-            <button className="mt-2 bg-white text-green-500 px-4 py-2 rounded">Talk to AI</button>
+            <label
+              className="block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4"
+              htmlFor="inline-full-name"
+            >
+              Channel Name
+            </label>
           </div>
-          <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
-        </section>
-
-        {/* More learning section */}
-        <section>
-          <h2 className="font-bold mb-2">More learning for you</h2>
-          {/* Add your learning items here */}
-        </section>
-      </main>
-
-      {/* Navigation */}
-      <nav className="bg-white p-4">
-        <ul className="flex justify-around">
-          {['Home', 'Learn', 'Practice', 'Chat'].map((item, index) => (
-            <li key={index} className="flex flex-col items-center">
-              <span className="w-6 h-6 bg-gray-300 rounded-full mb-1"></span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      </nav>
+          <div>
+            <input
+              className="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500"
+              id="inline-full-name"
+              type="text"
+              name="channel"
+              placeholder="Enter channel name"
+              required
+            />
+          </div>
+        </div>
+        <div className="text-center">
+          <button
+            className="inline-flex items-center justify-center px-5 py-3 mt-5 text-base font-medium text-center text-white bg-blue-400 rounded-lg hover:bg-blue-500 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900"
+          >Submit</button
+          >
+        </div>
+      </form>
     </div>
-  );
+
+  )
 }
