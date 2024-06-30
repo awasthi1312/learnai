@@ -5,7 +5,7 @@ import Navbar from '@/components/navbar';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import toHome from '@/hoc/toHome';
-
+import imageCompression from 'browser-image-compression';
 function Signup() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -14,6 +14,7 @@ function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -25,22 +26,52 @@ function Signup() {
       return;
     }
 
+    let profilePictureBase64 = '';
+
+    if (profilePicture) {
+      try {
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(profilePicture, options);
+        const reader = new FileReader();
+        reader.readAsDataURL(compressedFile);
+        reader.onloadend = async () => {
+          profilePictureBase64 = reader.result;
+          await submitForm(profilePictureBase64);
+        };
+      } catch (error) {
+        setError('Error compressing image');
+        return;
+      }
+    } else {
+      await submitForm(profilePictureBase64);
+    }
+  };
+
+  const submitForm = async (profilePictureBase64) => {
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, email, password, firstName, lastName }),
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          firstName,
+          lastName,
+          profilePicture: profilePictureBase64,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Save token to local storage or cookies if the API returns a token
         localStorage.setItem('token', data.token);
-
-        // Redirect to the homepage or another protected route
         router.push('/home');
       } else {
         setError(data.message);
@@ -128,6 +159,16 @@ function Signup() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="profilePicture" className="block text-gray-700">Profile Picture</label>
+              <input
+                type="file"
+                id="profilePicture"
+                name="profilePicture"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => setProfilePicture(e.target.files[0])}
               />
             </div>
             <button

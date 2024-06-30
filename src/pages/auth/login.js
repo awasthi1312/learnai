@@ -89,7 +89,7 @@ import toHome from '@/hoc/toHome';
           </form>
           <p className="text-center text-gray-700 mt-6">
             Don't have an account?{' '}
-            <Link href="/register" className="text-blue-500 hover:underline">Sign up</Link>
+            <Link href="/auth/signup" className="text-blue-500 hover:underline">Sign up</Link>
           </p>
         </div>
       </div>

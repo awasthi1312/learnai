@@ -1,4 +1,5 @@
 'use client'
+import Navbar from '@/components/navbar';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -6,6 +7,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center">
+      <Navbar />
       <h1
         className="mb-4 mt-20 text-4xl font-extrabold leading-none tracking-tight text-gray-900"
       >
@@ -41,8 +43,8 @@ export default function Home() {
         <div className="text-center">
           <button
             className="inline-flex items-center justify-center px-5 py-3 mt-5 text-base font-medium text-center text-white bg-blue-400 rounded-lg hover:bg-blue-500 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900"
-          >Submit</button
-          >
+          >Submit
+          </button>
         </div>
       </form>
     </div>

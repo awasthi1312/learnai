@@ -2,16 +2,14 @@
 
 import AgoraRTC, {
   AgoraRTCProvider,
-  LocalVideoTrack,
-  RemoteUser,
   useJoin,
-  useLocalCameraTrack,
   useLocalMicrophoneTrack,
   usePublish,
   useRTCClient,
   useRemoteAudioTracks,
   useRemoteUsers,
 } from "agora-rtc-react";
+import Navbar from '@/components/navbar';
 
 function Call(props) {
   const client = useRTCClient(
@@ -20,66 +18,91 @@ function Call(props) {
 
   return (
     <AgoraRTCProvider client={client}>
-      <Videos channelName={props.channelName} AppID={props.appId} />
-      <div className="fixed z-10 bottom-0 left-0 right-0 flex justify-center pb-4">
-        <a
-          className="px-5 py-3 text-base font-medium text-center text-white bg-red-400 rounded-lg hover:bg-red-500 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900 w-40"
-          href="/"
-        >
-          End Call
-        </a>
+      <div className="flex flex-col min-h-screen bg-gray-100">
+        <Navbar />
+        <main className="flex-grow p-4 space-y-4">
+          <Audio channelName={props.channelName} AppID={props.appId} id={props.id} />
+        </main>
+        <nav className="bg-white p-4">
+          <ul className="flex justify-around">
+            <li className="flex flex-col items-center">
+              <a className="px-5 py-3 text-base font-medium text-center text-white bg-red-500 rounded-lg hover:bg-red-600 focus:ring-4 focus:ring-red-300 w-40" href="/home">
+                End Call
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </AgoraRTCProvider>
   );
 }
 
-function Videos(props) {
-  const { AppID, channelName } = props;
-  const { isLoading: isLoadingMic, localMicrophoneTrack } =
-    useLocalMicrophoneTrack();
-  const { isLoading: isLoadingCam, localCameraTrack } = useLocalCameraTrack();
+function Audio(props) {
+  const { AppID, channelName, id } = props;
+  const { isLoading: isLoadingMic, localMicrophoneTrack } = useLocalMicrophoneTrack();
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
 
-  usePublish([localMicrophoneTrack, localCameraTrack]);
+  usePublish([localMicrophoneTrack]);
   useJoin({
     appid: AppID,
     channel: channelName,
     token: null,
+    uid: id,
   });
 
   audioTracks.map((track) => track.play());
-  const deviceLoading = isLoadingMic || isLoadingCam;
-  if (deviceLoading)
+
+  if (isLoadingMic)
     return (
-      <div className="flex flex-col items-center pt-40">Loading devices...</div>
+      <div className="bg-white p-4 rounded-lg shadow flex flex-col items-center">
+        <h2 className="font-bold mb-2">Loading devices...</h2>
+      </div>
     );
-  const unit = "minmax(0, 1fr) ";
 
   return (
-    <div className="flex flex-col justify-between w-full h-screen p-1">
-      <div
-        className={`grid  gap-1 flex-1`}
-        style={{
-          gridTemplateColumns:
-            remoteUsers.length > 9
-              ? unit.repeat(4)
-              : remoteUsers.length > 4
-              ? unit.repeat(3)
-              : remoteUsers.length > 1
-              ? unit.repeat(2)
-              : unit,
-        }}
-      >
-        <LocalVideoTrack
-          track={localCameraTrack}
-          play={true}
-          className="w-full h-full"
-        />
-        {remoteUsers.map((user) => (
-          <RemoteUser user={user} />
-        ))}
-      </div>
+    <div className="space-y-4">
+      <section className="bg-white p-4 rounded-lg shadow">
+        <h2 className="font-bold mb-2">Audio Call</h2>
+        <p>Your microphone is {localMicrophoneTrack ? 'active' : 'inactive'}</p>
+      </section>
+
+      <section className="bg-white p-4 rounded-lg shadow">
+        <h3 className="font-bold mb-2">Participants:</h3>
+        <ul className="space-y-2">
+          <li className="flex items-center">
+            <div className="w-8 h-8 bg-blue-500 rounded-full mr-2"></div>
+            <span>You</span>
+          </li>
+          {/* {
+            remoteUsers.map((user) => {
+              const userDetail = users.find((u) => u._id === user.uid);
+              return (
+                <li key={user.uid} className="flex items-center">
+                  <div className="w-8 h-8 bg-green-500 rounded-full mr-2">
+                    {
+                      userDetail.profilePicture ? (
+                        <img src={userDetail.profilePicture} alt={userDetail.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500">
+                          {userDetail.username.charAt(0).toUpperCase()}
+                        </div>
+                      )
+                    }
+                  </div>
+                  <span>User {user.uid}</span>
+                </li>
+              );
+            })
+          } */}
+          {remoteUsers.map((user) => (
+            <li key={user.uid} className="flex items-center">
+              <div className="w-8 h-8 bg-green-500 rounded-full mr-2"></div>
+              <span>User {user.uid}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
