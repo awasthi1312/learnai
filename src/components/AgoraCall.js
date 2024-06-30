@@ -10,6 +10,7 @@ import AgoraRTC, {
   useRemoteUsers,
 } from "agora-rtc-react";
 import Navbar from '@/components/navbar';
+import { useUsers } from "@/context/UsersContext";
 
 function Call(props) {
   const client = useRTCClient(
@@ -42,7 +43,7 @@ function Audio(props) {
   const { isLoading: isLoadingMic, localMicrophoneTrack } = useLocalMicrophoneTrack();
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
-
+  const { users, currentUser } = useUsers();
   usePublish([localMicrophoneTrack]);
   useJoin({
     appid: AppID,
@@ -71,36 +72,38 @@ function Audio(props) {
         <h3 className="font-bold mb-2">Participants:</h3>
         <ul className="space-y-2">
           <li className="flex items-center">
-            <div className="w-8 h-8 bg-blue-500 rounded-full mr-2"></div>
+            <div className="w-8 h-8 bg-blue-500 rounded-full mr-2">
+              <img src={currentUser.profilePicture} alt={currentUser.username} className="w-full h-full object-cover" />
+            </div>
             <span>You</span>
           </li>
-          {/* {
+          {
             remoteUsers.map((user) => {
               const userDetail = users.find((u) => u._id === user.uid);
               return (
                 <li key={user.uid} className="flex items-center">
                   <div className="w-8 h-8 bg-green-500 rounded-full mr-2">
                     {
-                      userDetail.profilePicture ? (
+                      userDetail ? userDetail.profilePicture ? (
                         <img src={userDetail.profilePicture} alt={userDetail.username} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-500">
-                          {userDetail.username.charAt(0).toUpperCase()}
+                          {userDetail.username.charAt(0).toUpperCase()} Not found
                         </div>
-                      )
+                      ) : <div></div>
                     }
                   </div>
-                  <span>User {user.uid}</span>
+                  {userDetail ? <span>{userDetail.username}</span> : <span>User {user.uid}</span>}
                 </li>
               );
             })
-          } */}
-          {remoteUsers.map((user) => (
+          }
+          {/* {remoteUsers.map((user) => (
             <li key={user.uid} className="flex items-center">
               <div className="w-8 h-8 bg-green-500 rounded-full mr-2"></div>
               <span>User {user.uid}</span>
             </li>
-          ))}
+          ))} */}
         </ul>
       </section>
     </div>

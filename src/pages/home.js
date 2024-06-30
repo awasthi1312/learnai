@@ -6,6 +6,7 @@ import toLogin from '@/hoc/toLogin';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import Image from "next/image";
 
 
 function Home() {
@@ -35,7 +36,7 @@ function Home() {
         }
       }
       catch (err) {
-        console.log('Failed to fetch users',err)
+        console.log('Failed to fetch users', err)
       }
     }
     fetchUsers()
@@ -51,7 +52,7 @@ function Home() {
       }
     }
   }, [setUsers, setCurrentUser])
-  
+
   const sortedUsers = [...users].sort((a, b) => {
     if (a.email === currentUser) return -1;
     if (b.email === currentUser) return 1;
@@ -85,7 +86,9 @@ function Home() {
             <p>Personal Teacher</p>
             <button className="mt-2 bg-white text-green-500 px-4 py-2 rounded">Talk to AI</button>
           </div>
-          <div className="w-24 h-24 bg-gray-200 rounded-full"></div>
+          <div className="w-24 h-24 bg-gray-200 rounded-full overflow-hidden">
+            <img src="/robot.jpg" alt="AI" className="w-full h-full object-cover" />
+          </div>
         </section>
 
         <section className="bg-white p-4 rounded-lg shadow">
