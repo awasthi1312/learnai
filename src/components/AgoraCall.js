@@ -13,7 +13,7 @@ function Call(props) {
       <div className="flex flex-col min-h-screen bg-gray-100">
         <Navbar />
         <main className="flex-grow p-4 space-y-4">
-          <Audio channelName={props.channelName} AppID={props.appId} id={props.id} />
+          <Audio channelName={props.channelName} AppID={props.appId} id={props.id} client={client} />
         </main>
         <nav className="bg-white p-4">
           <ul className="flex justify-around">
@@ -30,7 +30,7 @@ function Call(props) {
 }
 
 function Audio(props) {
-  const { AppID, channelName, id } = props;
+  const { AppID, channelName, id, client } = props;
   const { isLoading: isLoadingMic, localMicrophoneTrack } = useLocalMicrophoneTrack();
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
@@ -61,7 +61,11 @@ function Audio(props) {
   }
 
   function makeHost(botUID) {
-    // Logic to make the bot the host
+    client.setClientRole('host').then(() => {
+      console.log(`Bot with UID ${botUID} is now the host`);
+    }).catch(err => {
+      console.error('Failed to set bot as host:', err);
+    });
   }
 
   useEffect(() => {
@@ -89,12 +93,21 @@ function Audio(props) {
   }
 
   function handleTranscription(transcription) {
-    // Analyze the transcription and take action
-    if (transcription.includes('mute')) {
-      // Mute logic
-    } else if (transcription.includes('unmute')) {
-      // Unmute logic
-    }
+    remoteUsers.forEach(user => {
+      if (transcription.includes('mute')) {
+        client.muteRemoteAudio(user.uid).then(() => {
+          console.log(`Muted user with UID ${user.uid}`);
+        }).catch(err => {
+          console.error(`Failed to mute user ${user.uid}:`, err);
+        });
+      } else if (transcription.includes('unmute')) {
+        client.unmuteRemoteAudio(user.uid).then(() => {
+          console.log(`Unmuted user with UID ${user.uid}`);
+        }).catch(err => {
+          console.error(`Failed to unmute user ${user.uid}:`, err);
+        });
+      }
+    });
   }
 
   if (isLoadingMic)
