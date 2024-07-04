@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import AgoraRTC, {
   AgoraRTCProvider,
   useJoin,
@@ -22,7 +23,7 @@ function Call(props) {
       <div className="flex flex-col min-h-screen bg-gray-100">
         <Navbar />
         <main className="flex-grow p-4 space-y-4">
-          <Audio channelName={props.channelName} AppID={props.appId} id={props.id} />
+          <Audio channelName={props.channelName} AppID={props.appId} id={props.id} client={client} />
         </main>
         <nav className="bg-white p-4">
           <ul className="flex justify-around">
@@ -39,7 +40,7 @@ function Call(props) {
 }
 
 function Audio(props) {
-  const { AppID, channelName, id } = props;
+  const { AppID, channelName, id, client } = props;
   const { isLoading: isLoadingMic, localMicrophoneTrack } = useLocalMicrophoneTrack();
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
@@ -52,6 +53,29 @@ function Audio(props) {
     uid: id,
   });
 
+  // Bot Client Initialization
+  const botClient = AgoraRTC.createClient({ codec: "vp8", mode: "rtc" });
+
+  useEffect(() => {
+    if (remoteUsers.length > 1) {
+      addModeratorBot(botClient, channelName);
+    }
+  }, [remoteUsers]);
+
+  function addModeratorBot(client, channelName) {
+    const botUID = -12345678; // Unique ID for the bot
+    console.log("Attempting to add moderator bot...");
+    client.init(AppID, () => {
+      client.join(null, channelName, botUID, (uid) => {
+        console.log(`Bot joined with UID: ${uid}`);
+      }, (err) => {
+        console.error("Bot failed to join", err);
+      });
+    }, (err) => {
+      console.error("Bot client initialization failed", err);
+    });
+  }
+
   audioTracks.map((track) => track.play());
 
   if (isLoadingMic)
@@ -60,6 +84,11 @@ function Audio(props) {
         <h2 className="font-bold mb-2">Loading devices...</h2>
       </div>
     );
+
+  const allParticipants = [
+    ...remoteUsers,
+    { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" } // Adding the bot to the participants list
+  ];
 
   return (
     <div className="space-y-4">
@@ -78,32 +107,26 @@ function Audio(props) {
             <span>You</span>
           </li>
           {
-            remoteUsers.map((user) => {
-              const userDetail = users.find((u) => u._id === user.uid);
+            allParticipants.map((user) => {
+              const userDetail = users.find((u) => u._id === user.uid) || user;
               return (
                 <li key={user.uid} className="flex items-center">
                   <div className="w-8 h-8 bg-green-500 rounded-full mr-2">
                     {
-                      userDetail ? userDetail.profilePicture ? (
+                      userDetail.profilePicture ? (
                         <img src={userDetail.profilePicture} alt={userDetail.username} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-500">
                           {userDetail.username.charAt(0).toUpperCase()} Not found
                         </div>
-                      ) : <div></div>
+                      )
                     }
                   </div>
-                  {userDetail ? <span>{userDetail.username}</span> : <span>User {user.uid}</span>}
+                  <span>{userDetail.username}</span>
                 </li>
               );
             })
           }
-          {/* {remoteUsers.map((user) => (
-            <li key={user.uid} className="flex items-center">
-              <div className="w-8 h-8 bg-green-500 rounded-full mr-2"></div>
-              <span>User {user.uid}</span>
-            </li>
-          ))} */}
         </ul>
       </section>
     </div>
