@@ -1,18 +1,21 @@
-// context/UsersContext.js
+// hoc/withAuthRedirect.js
 
-import { createContext, useState, useContext } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { isAuthenticated } from '../utils/auth';
 
-const UsersContext = createContext();
+const toHome = (WrappedComponent) => {
+  return (props) => {
+    const router = useRouter();
 
-export const UsersProvider = ({ children }) => {
-  const [users, setUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
+    useEffect(() => {
+      if (isAuthenticated()) {
+        router.push('/home');
+      }
+    }, []);
 
-  return (
-    <UsersContext.Provider value={{ users, setUsers, currentUser, setCurrentUser }}>
-      {children}
-    </UsersContext.Provider>
-  );
+    return <WrappedComponent {...props} />;
+  };
 };
 
-export const useUsers = () => useContext(UsersContext);
+export default toHome;

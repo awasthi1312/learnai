@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import { ClientOptions } from 'openai';
 import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
