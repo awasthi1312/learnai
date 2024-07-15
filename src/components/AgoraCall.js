@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
-import AgoraRTC, {
-  AgoraRTCProvider,
-  useJoin,
-  useLocalMicrophoneTrack,
-  usePublish,
-  useRTCClient,
-  useRemoteAudioTracks,
-  useRemoteUsers,
-} from "agora-rtc-react";
+import { useState, useEffect } from "react";
+import AgoraRTC, { AgoraRTCProvider, useJoin, useLocalMicrophoneTrack, usePublish, useRTCClient, useRemoteAudioTracks, useRemoteUsers } from "agora-rtc-react";
 import Navbar from '@/components/navbar';
 import { useUsers } from "@/context/UsersContext";
 
 function Call(props) {
-  const client = useRTCClient(
-    AgoraRTC.createClient({ codec: "vp8", mode: "rtc" })
-  );
+  const client = useRTCClient(AgoraRTC.createClient({ codec: "vp8", mode: "rtc" }));
 
   return (
     <AgoraRTCProvider client={client}>
@@ -45,6 +35,7 @@ function Audio(props) {
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
   const { users, currentUser } = useUsers();
+  const [botJoined, setBotJoined] = useState(false);
   usePublish([localMicrophoneTrack]);
   useJoin({
     appid: AppID,
@@ -56,11 +47,10 @@ function Audio(props) {
   // Bot Client Initialization
   const botClient = AgoraRTC.createClient({ codec: "vp8", mode: "rtc" });
 
-  useEffect(() => {
-    if (remoteUsers.length > 1) {
-      addModeratorBot(botClient, channelName);
-    }
-  }, [remoteUsers]);
+  // Add bot if more than one remote user
+  if (remoteUsers.length > 1 && !botJoined) {
+    addModeratorBot(botClient, channelName);
+  }
 
   function addModeratorBot(client, channelName) {
     const botUID = -12345678; // Unique ID for the bot
@@ -68,6 +58,7 @@ function Audio(props) {
     client.init(AppID, () => {
       client.join(null, channelName, botUID, (uid) => {
         console.log(`Bot joined with UID: ${uid}`);
+        setBotJoined(true);
       }, (err) => {
         console.error("Bot failed to join", err);
       });
@@ -76,7 +67,24 @@ function Audio(props) {
     });
   }
 
-  audioTracks.map((track) => track.play());
+  // Process audio tracks for moderation
+  audioTracks.forEach(track => {
+    const mediaStreamTrack = track.getMediaStreamTrack();
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(new MediaStream([mediaStreamTrack]));
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    processor.onaudioprocess = (audioProcessingEvent) => {
+      const inputBuffer = audioProcessingEvent.inputBuffer;
+      const inputData = inputBuffer.getChannelData(0);
+
+      // Perform audio processing for moderation
+      console.log('Audio data:', inputData);
+    };
+  });
 
   if (isLoadingMic)
     return (
@@ -87,8 +95,8 @@ function Audio(props) {
 
   const allParticipants = [
     ...remoteUsers,
-    { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" } // Adding the bot to the participants list
-  ];
+    botJoined ? { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" } : null
+  ].filter(Boolean); // Filter out null values
 
   return (
     <div className="space-y-4">
