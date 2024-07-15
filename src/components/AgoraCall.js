@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import AgoraRTC, { AgoraRTCProvider, useJoin, useLocalMicrophoneTrack, usePublish, useRTCClient, useRemoteAudioTracks, useRemoteUsers } from "agora-rtc-react";
+import { useEffect } from "react";
+import AgoraRTC, {
+  AgoraRTCProvider,
+  useJoin,
+  useLocalMicrophoneTrack,
+  usePublish,
+  useRTCClient,
+  useRemoteAudioTracks,
+  useRemoteUsers,
+} from "agora-rtc-react";
 import Navbar from '@/components/navbar';
 import { useUsers } from "@/context/UsersContext";
+import axios from 'axios'; // Import axios for making API requests
 
 function Call(props) {
-  const client = useRTCClient(AgoraRTC.createClient({ codec: "vp8", mode: "rtc" }));
+  const client = useRTCClient(
+    AgoraRTC.createClient({ codec: "vp8", mode: "rtc" })
+  );
 
   return (
     <AgoraRTCProvider client={client}>
@@ -35,7 +46,6 @@ function Audio(props) {
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
   const { users, currentUser } = useUsers();
-  const [botJoined, setBotJoined] = useState(false);
   usePublish([localMicrophoneTrack]);
   useJoin({
     appid: AppID,
@@ -47,10 +57,11 @@ function Audio(props) {
   // Bot Client Initialization
   const botClient = AgoraRTC.createClient({ codec: "vp8", mode: "rtc" });
 
-  // Add bot if more than one remote user
-  if (remoteUsers.length > 1 && !botJoined) {
-    addModeratorBot(botClient, channelName);
-  }
+  useEffect(() => {
+    if (remoteUsers.length > 1) {
+      addModeratorBot(botClient, channelName);
+    }
+  }, [remoteUsers]);
 
   function addModeratorBot(client, channelName) {
     const botUID = -12345678; // Unique ID for the bot
@@ -58,13 +69,34 @@ function Audio(props) {
     client.init(AppID, () => {
       client.join(null, channelName, botUID, (uid) => {
         console.log(`Bot joined with UID: ${uid}`);
-        setBotJoined(true);
       }, (err) => {
         console.error("Bot failed to join", err);
       });
     }, (err) => {
       console.error("Bot client initialization failed", err);
     });
+  }
+
+  // Function to send audio data to OpenAI Whisper API
+  async function transcribeAudio(audioData) {
+    try {
+      const response = await axios.post('/api/transcribe', { audio: audioData });
+      const transcription = response.data.transcription;
+      handleTranscription(transcription);
+    } catch (error) {
+      console.error('Transcription error:', error);
+    }
+  }
+
+  // Function to handle transcriptions
+  function handleTranscription(transcription) {
+    console.log('Transcription:', transcription);
+    // Add logic to moderate based on transcription content
+    if (transcription.includes('mute')) {
+      // Mute logic
+    } else if (transcription.includes('unmute')) {
+      // Unmute logic
+    }
   }
 
   // Process audio tracks for moderation
@@ -81,8 +113,8 @@ function Audio(props) {
       const inputBuffer = audioProcessingEvent.inputBuffer;
       const inputData = inputBuffer.getChannelData(0);
 
-      // Perform audio processing for moderation
-      console.log('Audio data:', inputData);
+      // Send audio data for transcription
+      transcribeAudio(inputData);
     };
   });
 
@@ -95,8 +127,8 @@ function Audio(props) {
 
   const allParticipants = [
     ...remoteUsers,
-    botJoined ? { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" } : null
-  ].filter(Boolean); // Filter out null values
+    { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" } // Adding the bot to the participants list
+  ];
 
   return (
     <div className="space-y-4">
@@ -125,7 +157,7 @@ function Audio(props) {
                         <img src={userDetail.profilePicture} alt={userDetail.username} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-500">
-                          {userDetail.username.charAt(0).toUpperCase()} Not found
+                          {userDetail.username && userDetail.username.charAt(0).toUpperCase()} Not found
                         </div>
                       )
                     }
