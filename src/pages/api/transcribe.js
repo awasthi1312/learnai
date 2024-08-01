@@ -37,7 +37,7 @@ const handler = async (req, res) => {
     } catch (error) {
       res.status(500).json({ error: 'Transcription failed' });
     } finally {
-      fs.unlinkSync(audioFile); // Clean up the uploaded file
+      fs.unlinkSync(audioFile);
     }
   });
 };

@@ -1,47 +1,44 @@
 "use client";
 
 import { useEffect } from "react";
-import AgoraRTC, {
-  AgoraRTCProvider,
-  useJoin,
-  useLocalMicrophoneTrack,
-  usePublish,
-  useRTCClient,
-  useRemoteAudioTracks,
-  useRemoteUsers,
-} from "agora-rtc-react";
+import dynamic from 'next/dynamic';
 import Navbar from '@/components/navbar';
 import { useUsers } from "@/context/UsersContext";
-import axios from 'axios'; // Import axios for making API requests
+import axios from 'axios';
+
+const AgoraRTC = dynamic(() => import("agora-rtc-react"), { ssr: false });
+const { useJoin, useLocalMicrophoneTrack, usePublish, useRTCClient, useRemoteAudioTracks, useRemoteUsers, AgoraRTCProvider } = AgoraRTC;
 
 function Call(props) {
-  const client = useRTCClient(
+  const client = typeof window !== 'undefined' ? useRTCClient(
     AgoraRTC.createClient({ codec: "vp8", mode: "rtc" })
-  );
+  ) : null;
 
   return (
-    <AgoraRTCProvider client={client}>
-      <div className="flex flex-col min-h-screen bg-gray-100">
-        <Navbar />
-        <main className="flex-grow p-4 space-y-4">
-          <Audio channelName={props.channelName} AppID={props.appId} id={props.id} client={client} />
-        </main>
-        <nav className="bg-white p-4">
-          <ul className="flex justify-around">
-            <li className="flex flex-col items-center">
-              <a className="px-5 py-3 text-base font-medium text-center text-white bg-red-500 rounded-lg hover:bg-red-600 focus:ring-4 focus:ring-red-300 w-40" href="/home">
-                End Call
-              </a>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </AgoraRTCProvider>
+    client ? (
+      <AgoraRTCProvider client={client}>
+        <div className="flex flex-col min-h-screen bg-gray-100">
+          <Navbar />
+          <main className="flex-grow p-4 space-y-4">
+            <Audio channelName={props.channelName} AppID={props.appId} id={props.id} client={client} />
+          </main>
+          <nav className="bg-white p-4">
+            <ul className="flex justify-around">
+              <li className="flex flex-col items-center">
+                <a className="px-5 py-3 text-base font-medium text-center text-white bg-red-500 rounded-lg hover:bg-red-600 focus:ring-4 focus:ring-red-300 w-40" href="/home">
+                  End Call
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </AgoraRTCProvider>
+    ) : null
   );
 }
 
 function Audio(props) {
-  const { AppID, channelName, id, client } = props;
+  const { AppID, channelName, id } = props;
   const { isLoading: isLoadingMic, localMicrophoneTrack } = useLocalMicrophoneTrack();
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
@@ -55,7 +52,7 @@ function Audio(props) {
   });
 
   // Bot Client Initialization
-  const botClient = AgoraRTC.createClient({ codec: "vp8", mode: "rtc" });
+  const botClient = typeof window !== 'undefined' ? AgoraRTC.createClient({ codec: "vp8", mode: "rtc" }) : null;
 
   useEffect(() => {
     if (remoteUsers.length > 1) {
@@ -64,8 +61,8 @@ function Audio(props) {
   }, [remoteUsers]);
 
   function addModeratorBot(client, channelName) {
-    const botUID = -12345678; // Unique ID for the bot
-    console.log("Attempting to add moderator bot...");
+    if (!client) return;
+    const botUID = -12345678;
     client.init(AppID, () => {
       client.join(null, channelName, botUID, (uid) => {
         console.log(`Bot joined with UID: ${uid}`);
@@ -91,7 +88,6 @@ function Audio(props) {
   // Function to handle transcriptions
   function handleTranscription(transcription) {
     console.log('Transcription:', transcription);
-    // Add logic to moderate based on transcription content
     if (transcription.includes('mute')) {
       // Mute logic
     } else if (transcription.includes('unmute')) {
@@ -102,7 +98,7 @@ function Audio(props) {
   // Process audio tracks for moderation
   audioTracks.forEach(track => {
     const mediaStreamTrack = track.getMediaStreamTrack();
-    const audioContext = new AudioContext();
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioContext.createMediaStreamSource(new MediaStream([mediaStreamTrack]));
     const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
@@ -127,7 +123,7 @@ function Audio(props) {
 
   const allParticipants = [
     ...remoteUsers,
-    { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" } // Adding the bot to the participants list
+    { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" }
   ];
 
   return (
