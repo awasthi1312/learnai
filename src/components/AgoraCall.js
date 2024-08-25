@@ -4,10 +4,16 @@ import { useEffect } from "react";
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/navbar';
 import { useUsers } from "@/context/UsersContext";
-import axios from 'axios';
-
-const AgoraRTC = dynamic(() => import("agora-rtc-react"), { ssr: false });
-const { useJoin, useLocalMicrophoneTrack, usePublish, useRTCClient, useRemoteAudioTracks, useRemoteUsers, AgoraRTCProvider } = AgoraRTC;
+import { addModeratorBot, transcribeAudio, handleTranscription, getAllParticipants } from '@/components/bot';
+import AgoraRTC, {
+  AgoraRTCProvider,
+  useJoin,
+  useLocalMicrophoneTrack,
+  usePublish,
+  useRTCClient,
+  useRemoteAudioTracks,
+  useRemoteUsers,
+} from "agora-rtc-react";
 
 function Call(props) {
   const client = typeof window !== 'undefined' ? useRTCClient(
@@ -38,7 +44,7 @@ function Call(props) {
 }
 
 function Audio(props) {
-  const { AppID, channelName, id } = props;
+  const { AppID, channelName, id, client } = props;
   const { isLoading: isLoadingMic, localMicrophoneTrack } = useLocalMicrophoneTrack();
   const remoteUsers = useRemoteUsers();
   const { audioTracks } = useRemoteAudioTracks(remoteUsers);
@@ -51,68 +57,35 @@ function Audio(props) {
     uid: id,
   });
 
-  // Bot Client Initialization
-  const botClient = typeof window !== 'undefined' ? AgoraRTC.createClient({ codec: "vp8", mode: "rtc" }) : null;
-
   useEffect(() => {
     if (remoteUsers.length > 1) {
-      addModeratorBot(botClient, channelName);
+      addModeratorBot(client, channelName, AppID);
     }
   }, [remoteUsers]);
 
-  function addModeratorBot(client, channelName) {
-    if (!client) return;
-    const botUID = -12345678;
-    client.init(AppID, () => {
-      client.join(null, channelName, botUID, (uid) => {
-        console.log(`Bot joined with UID: ${uid}`);
-      }, (err) => {
-        console.error("Bot failed to join", err);
-      });
-    }, (err) => {
-      console.error("Bot client initialization failed", err);
+  useEffect(() => {
+    // Monitor audio and call bot API
+    audioTracks.forEach(track => {
+      const mediaStreamTrack = track.getMediaStreamTrack();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(new MediaStream([mediaStreamTrack]));
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      processor.onaudioprocess = async (audioProcessingEvent) => {
+        const inputBuffer = audioProcessingEvent.inputBuffer;
+        const inputData = inputBuffer.getChannelData(0);
+
+        // Send audio data for transcription
+        const transcription = await transcribeAudio(inputData);
+        if (transcription) {
+          handleTranscription(transcription);
+        }
+      };
     });
-  }
-
-  // Function to send audio data to OpenAI Whisper API
-  async function transcribeAudio(audioData) {
-    try {
-      const response = await axios.post('/api/transcribe', { audio: audioData });
-      const transcription = response.data.transcription;
-      handleTranscription(transcription);
-    } catch (error) {
-      console.error('Transcription error:', error);
-    }
-  }
-
-  // Function to handle transcriptions
-  function handleTranscription(transcription) {
-    console.log('Transcription:', transcription);
-    if (transcription.includes('mute')) {
-      // Mute logic
-    } else if (transcription.includes('unmute')) {
-      // Unmute logic
-    }
-  }
-
-  // Process audio tracks for moderation
-  audioTracks.forEach(track => {
-    const mediaStreamTrack = track.getMediaStreamTrack();
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioContext.createMediaStreamSource(new MediaStream([mediaStreamTrack]));
-    const processor = audioContext.createScriptProcessor(4096, 1, 1);
-
-    source.connect(processor);
-    processor.connect(audioContext.destination);
-
-    processor.onaudioprocess = (audioProcessingEvent) => {
-      const inputBuffer = audioProcessingEvent.inputBuffer;
-      const inputData = inputBuffer.getChannelData(0);
-
-      // Send audio data for transcription
-      transcribeAudio(inputData);
-    };
-  });
+  }, [audioTracks]);
 
   if (isLoadingMic)
     return (
@@ -121,10 +94,7 @@ function Audio(props) {
       </div>
     );
 
-  const allParticipants = [
-    ...remoteUsers,
-    { uid: -12345678, username: "Moderator Bot", profilePicture: "bot-profile-pic-url" }
-  ];
+  const allParticipants = getAllParticipants(remoteUsers);
 
   return (
     <div className="space-y-4">
