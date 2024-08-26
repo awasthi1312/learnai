@@ -64,27 +64,27 @@ function Audio(props) {
   }, [remoteUsers]);
 
   useEffect(() => {
-    // Monitor audio and call bot API
-    audioTracks.forEach(track => {
-      const mediaStreamTrack = track.getMediaStreamTrack();
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContext.createMediaStreamSource(new MediaStream([mediaStreamTrack]));
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+    if (typeof window !== 'undefined') { 
+      audioTracks.forEach(track => {
+        const mediaStreamTrack = track.getMediaStreamTrack();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(new MediaStream([mediaStreamTrack]));
+        const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+        source.connect(processor);
+        processor.connect(audioContext.destination);
 
-      processor.onaudioprocess = async (audioProcessingEvent) => {
-        const inputBuffer = audioProcessingEvent.inputBuffer;
-        const inputData = inputBuffer.getChannelData(0);
+        processor.onaudioprocess = async (audioProcessingEvent) => {
+          const inputBuffer = audioProcessingEvent.inputBuffer;
+          const inputData = inputBuffer.getChannelData(0);
 
-        // Send audio data for transcription
-        const transcription = await transcribeAudio(inputData);
-        if (transcription) {
-          handleTranscription(transcription);
-        }
-      };
-    });
+          const transcription = await transcribeAudio(inputData);
+          if (transcription) {
+            handleTranscription(transcription);
+          }
+        };
+      });
+    }
   }, [audioTracks]);
 
   if (isLoadingMic)

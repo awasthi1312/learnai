@@ -11,7 +11,7 @@ export function getAllParticipants(remoteUsers) {
 
 // Export the addModeratorBot, transcribeAudio, and handleTranscription functions
 export async function addModeratorBot(client, channelName, AppID) {
-  if (!client) return;
+  if (!client || typeof window === 'undefined') return;
   const botUID = -12345678;
 
   client.init(AppID, () => {
@@ -24,6 +24,7 @@ export async function addModeratorBot(client, channelName, AppID) {
     console.error("Bot client initialization failed", err);
   });
 }
+
 
 export async function transcribeAudio(audioData) {
   try {
